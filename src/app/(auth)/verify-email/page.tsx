@@ -2,11 +2,11 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { APP_NAME } from '@/lib/constants'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email') || ''
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
@@ -81,5 +81,13 @@ export default function VerifyEmailPage() {
         <p className="mt-4 text-xs" style={{ color: 'var(--muted)' }}>{APP_NAME}</p>
       </div>
     </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailContent />
+    </Suspense>
   )
 }
