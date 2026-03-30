@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light mode */
+  --background: #FAFAFA;
+  --foreground: #111111;
+  --card: #FFFFFF;
+  --card-border: #E5E7EB;
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --secondary: #6B7280;
+  --accent: #8B5CF6;
+  --success: #10B981;
+  --error: #EF4444;
+  --muted: #9CA3AF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0F172A;
+    --foreground: #F1F5F9;
+    --card: #1E293B;
+    --card-border: #334155;
+    --primary: #3B82F6;
+    --primary-hover: #60A5FA;
+    --secondary: #94A3B8;
+    --accent: #A78BFA;
+    --success: #34D399;
+    --error: #F87171;
+    --muted: #64748B;
+  }
+}
+
+.dark {
+  --background: #0F172A;
+  --foreground: #F1F5F9;
+  --card: #1E293B;
+  --card-border: #334155;
+  --primary: #3B82F6;
+  --primary-hover: #60A5FA;
+  --secondary: #94A3B8;
+  --accent: #A78BFA;
+  --success: #34D399;
+  --error: #F87171;
+  --muted: #64748B;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+@layer utilities {
+  .skeleton {
+    @apply bg-gray-200 dark:bg-gray-700 animate-pulse rounded;
+  }
+}
