@@ -35,18 +35,19 @@ export default function GalleryClient({ userEmail }: GalleryClientProps) {
     setToasts(prev => prev.filter(t => t.id !== id))
   }
 
-  const loadImages = useCallback((q = '') => {
+  // Run only on mount
+  useEffect(() => {
+    fetchImages(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Stable callback for useSearch — avoids infinite loop from inline function
+  const handleSearch = useCallback((q: string) => {
+    setCurrentQuery(q)
     fetchImages(1, q)
   }, [fetchImages])
 
-  useEffect(() => {
-    fetchImages(1)
-  }, [fetchImages])
-
-  const { query, setQuery } = useSearch((q) => {
-    setCurrentQuery(q)
-    loadImages(q)
-  })
+  const { query, setQuery } = useSearch(handleSearch)
 
   async function handleUpload(file: File) {
     // Client-side validation

@@ -72,7 +72,8 @@ export function useImages() {
           ? { ...img, metadata: { ...img.metadata!, ai_processing_status: 'failed' } }
           : img
       ))
-      throw new Error('Analysis failed')
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error ?? 'Analysis failed')
     }
   }, [])
 

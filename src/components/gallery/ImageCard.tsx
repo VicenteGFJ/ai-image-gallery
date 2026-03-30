@@ -13,6 +13,7 @@ interface ImageCardProps {
 export default function ImageCard({ image, onClick, onAnalyze }: ImageCardProps) {
   const status = image.metadata?.ai_processing_status ?? 'pending'
   const tags = image.metadata?.tags ?? []
+  const title = image.metadata?.title
 
   return (
     <div
@@ -40,16 +41,25 @@ export default function ImageCard({ image, onClick, onAnalyze }: ImageCardProps)
       </div>
 
       {/* Footer */}
-      <div className="p-3">
-        {status === 'complete' && tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {tags.slice(0, 3).map(tag => (
-              <TagChip key={tag} tag={tag} />
-            ))}
-            {tags.length > 3 && (
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>+{tags.length - 3}</span>
+      <div className="p-3 space-y-2">
+        {status === 'complete' && (
+          <>
+            {title && (
+              <p className="text-sm font-medium leading-tight truncate" style={{ color: 'var(--foreground)' }}>
+                {title}
+              </p>
             )}
-          </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.slice(0, 3).map(tag => (
+                  <TagChip key={tag} tag={tag} />
+                ))}
+                {tags.length > 3 && (
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>+{tags.length - 3}</span>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {status === 'pending' && (
@@ -61,7 +71,7 @@ export default function ImageCard({ image, onClick, onAnalyze }: ImageCardProps)
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
             </svg>
-            AI Analyzer
+            Analyze with AI
           </button>
         )}
 
@@ -71,7 +81,7 @@ export default function ImageCard({ image, onClick, onAnalyze }: ImageCardProps)
             className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-white transition hover:opacity-90"
             style={{ backgroundColor: 'var(--error)' }}
           >
-            Retry Analysis
+            Retry AI Analysis
           </button>
         )}
       </div>

@@ -80,7 +80,9 @@ export async function POST(
     })
 
     const raw = response.choices[0]?.message?.content ?? ''
-    const parsed = JSON.parse(raw) as { tags: string[]; description: string }
+    // Strip markdown code fences if the model wrapped the JSON (e.g. ```json ... ```)
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+    const parsed = JSON.parse(cleaned) as { title?: string; tags: string[]; description: string }
 
     if (!Array.isArray(parsed.tags) || typeof parsed.description !== 'string') {
       throw new Error('Invalid AI response structure')
@@ -91,6 +93,7 @@ export async function POST(
     const { data: updated } = await serviceClient
       .from('image_metadata')
       .update({
+        title: parsed.title ?? null,
         tags: parsed.tags,
         description: parsed.description,
         ai_processing_status: 'complete',
@@ -105,6 +108,7 @@ export async function POST(
     return NextResponse.json(updated)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Analysis failed'
+    console.error('[analyze] error:', message, err)
 
     await serviceClient
       .from('image_metadata')

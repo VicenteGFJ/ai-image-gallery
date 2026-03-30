@@ -21,6 +21,7 @@ export interface ImageMetadata {
   id: string
   image_id: string
   user_id: string
+  title: string | null
   description: string | null
   tags: string[]
   ai_processing_status: 'pending' | 'processing' | 'complete' | 'failed'

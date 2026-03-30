@@ -20,6 +20,7 @@ export default function ImageModal({ image, isOpen, onClose, onDelete }: ImageMo
 
   const status = image.metadata?.ai_processing_status ?? 'pending'
   const tags = image.metadata?.tags ?? []
+  const title = image.metadata?.title
   const description = image.metadata?.description
 
   function handleDelete() {
@@ -48,9 +49,14 @@ export default function ImageModal({ image, isOpen, onClose, onDelete }: ImageMo
         {/* Details */}
         <div className="p-6">
           <div className="flex items-start justify-between gap-4 mb-4">
-            <h3 className="font-medium text-sm truncate" style={{ color: 'var(--foreground)' }}>
-              {image.filename}
-            </h3>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-base truncate" style={{ color: 'var(--foreground)' }}>
+                {title ?? image.filename}
+              </h3>
+              {title && (
+                <p className="text-xs truncate mt-0.5" style={{ color: 'var(--muted)' }}>{image.filename}</p>
+              )}
+            </div>
             <span className="text-xs shrink-0" style={{ color: 'var(--muted)' }}>
               {image.width && image.height ? `${image.width}×${image.height}` : ''}
             </span>
