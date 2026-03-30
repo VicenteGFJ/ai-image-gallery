@@ -16,7 +16,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('image_metadata')
-    .select('ai_processing_status, tags, description')
+    .select('ai_processing_status, title, tags, description')
     .eq('image_id', id)
     .eq('user_id', user.id)
     .single()

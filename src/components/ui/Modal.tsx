@@ -34,7 +34,7 @@ export default function Modal({ isOpen, onClose, children, maxWidth = 'max-w-2xl
       onClick={onClose}
     >
       <div
-        className={`relative w-full ${maxWidth} rounded-2xl shadow-2xl`}
+        className={`relative w-full ${maxWidth} rounded-2xl shadow-2xl overflow-hidden`}
         style={{ backgroundColor: 'var(--card)', border: '1px solid var(--card-border)' }}
         onClick={e => e.stopPropagation()}
       >
