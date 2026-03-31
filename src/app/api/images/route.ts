@@ -4,7 +4,7 @@ import { generateThumbnail, getImageDimensions } from '@/lib/image-processing'
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, SIGNED_URL_EXPIRY_SECONDS } from '@/lib/constants'
 import { randomUUID } from 'crypto'
 
-// GET /api/images — list images with optional search
+// GET /api/images — list images with optional full-text search
 export async function GET(request: Request) {
   const supabase = await createServerSupabaseClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -19,22 +19,35 @@ export async function GET(request: Request) {
   const offset = (page - 1) * perPage
   const query = searchParams.get('q')?.trim() ?? ''
 
-  let dbQuery = supabase
+  const serviceClient = createServiceClient()
+
+  let imageIds: string[] | null = null
+
+  // Full-text search: find matching metadata rows first
+  if (query) {
+    const { data: metaRows } = await serviceClient
+      .from('image_metadata')
+      .select('image_id')
+      .eq('user_id', user.id)
+      .textSearch('search_vector', query, { type: 'plain', config: 'english' })
+
+    imageIds = metaRows?.map(r => r.image_id) ?? []
+    // No matches — return empty immediately
+    if (imageIds.length === 0) {
+      return NextResponse.json({ images: [], total: 0, page, per_page: perPage, total_pages: 0 })
+    }
+  }
+
+  // Fetch images (filtered by IDs if searching)
+  let dbQuery = serviceClient
     .from('images')
     .select('*, image_metadata(*)', { count: 'exact' })
     .eq('user_id', user.id)
     .order('uploaded_at', { ascending: false })
     .range(offset, offset + perPage - 1)
 
-  // Full-text search (Wave 3 — basic filter for now)
-  if (query) {
-    dbQuery = supabase
-      .from('image_metadata')
-      .select('image_id, images!inner(*), *', { count: 'exact' })
-      .eq('user_id', user.id)
-      .or(`description.ilike.%${query}%,tags.cs.{${query}}`)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + perPage - 1) as typeof dbQuery
+  if (imageIds !== null) {
+    dbQuery = dbQuery.in('id', imageIds)
   }
 
   const { data: images, error, count } = await dbQuery
@@ -47,18 +60,15 @@ export async function GET(request: Request) {
   const totalPages = Math.ceil(total / perPage)
 
   const imagesWithUrls = await Promise.all(
-    (images ?? []).map(async (row) => {
-      const image = query ? (row as { images: typeof row }).images ?? row : row
-      const metadata = query ? row : (row as { image_metadata: unknown }).image_metadata
-
+    (images ?? []).map(async (image) => {
       const [{ data: originalData }, { data: thumbnailData }] = await Promise.all([
-        supabase.storage.from('images').createSignedUrl(image.original_path, SIGNED_URL_EXPIRY_SECONDS),
-        supabase.storage.from('images').createSignedUrl(image.thumbnail_path, SIGNED_URL_EXPIRY_SECONDS),
+        serviceClient.storage.from('images').createSignedUrl(image.original_path, SIGNED_URL_EXPIRY_SECONDS),
+        serviceClient.storage.from('images').createSignedUrl(image.thumbnail_path, SIGNED_URL_EXPIRY_SECONDS),
       ])
 
       return {
         ...image,
-        metadata,
+        metadata: image.image_metadata,
         original_url: originalData?.signedUrl ?? '',
         thumbnail_url: thumbnailData?.signedUrl ?? '',
       }
@@ -84,12 +94,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 })
   }
 
-  // Validate MIME type
   if (!ALLOWED_MIME_TYPES.includes(file.type as typeof ALLOWED_MIME_TYPES[number])) {
     return NextResponse.json({ error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' }, { status: 400 })
   }
 
-  // Validate file size
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 })
   }
@@ -98,7 +106,6 @@ export async function POST(request: Request) {
   const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
   const filename = `${randomUUID()}.${ext}`
 
-  // Get dimensions + generate thumbnail
   const [dimensions, thumbnailBuffer] = await Promise.all([
     getImageDimensions(buffer),
     generateThumbnail(buffer),
@@ -108,7 +115,6 @@ export async function POST(request: Request) {
   const thumbnailFilename = filename.replace(/\.\w+$/, '.jpg')
   const thumbnailPath = `${user.id}/thumbnails/${thumbnailFilename}`
 
-  // Upload to Supabase Storage using service client (bypasses RLS for server-side upload)
   const serviceClient = createServiceClient()
 
   const [originalUpload, thumbnailUpload] = await Promise.all([
@@ -123,7 +129,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Thumbnail upload failed: ${thumbnailUpload.error.message}` }, { status: 500 })
   }
 
-  // Insert into DB using service client (with user_id set explicitly — RLS-safe)
   const { data: image, error: dbError } = await serviceClient
     .from('images')
     .insert({
@@ -153,7 +158,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: metaError.message }, { status: 500 })
   }
 
-  // Generate signed URLs
   const [{ data: originalSigned }, { data: thumbnailSigned }] = await Promise.all([
     serviceClient.storage.from('images').createSignedUrl(originalPath, SIGNED_URL_EXPIRY_SECONDS),
     serviceClient.storage.from('images').createSignedUrl(thumbnailPath, SIGNED_URL_EXPIRY_SECONDS),

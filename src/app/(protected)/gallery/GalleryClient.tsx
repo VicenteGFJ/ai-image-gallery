@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import SearchBar from '@/components/gallery/SearchBar'
@@ -16,6 +17,9 @@ interface GalleryClientProps {
 }
 
 export default function GalleryClient({ userEmail }: GalleryClientProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const {
     images, total, page, totalPages, loading,
     fetchImages, uploadImage, deleteImage, analyzeImage, updateImageStatus,
@@ -24,7 +28,7 @@ export default function GalleryClient({ userEmail }: GalleryClientProps) {
   const [toasts, setToasts] = useState<ToastData[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [currentQuery, setCurrentQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
 
   function addToast(message: string, type: ToastData['type']) {
     const id = crypto.randomUUID()
@@ -35,22 +39,32 @@ export default function GalleryClient({ userEmail }: GalleryClientProps) {
     setToasts(prev => prev.filter(t => t.id !== id))
   }
 
-  // Run only on mount
-  useEffect(() => {
-    fetchImages(1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Read initial query from URL
+  const initialQuery = searchParams.get('q') ?? ''
 
-  // Stable callback for useSearch — avoids infinite loop from inline function
+  // Fetch images whenever URL ?q param changes
+  useEffect(() => {
+    fetchImages(1, initialQuery)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery])
+
   const handleSearch = useCallback((q: string) => {
-    setCurrentQuery(q)
-    fetchImages(1, q)
-  }, [fetchImages])
+    setIsSearching(false)
+    // Sync to URL — preserves on refresh and enables back/forward
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    router.replace(`/gallery${q ? `?${params}` : ''}`, { scroll: false })
+  }, [router])
 
   const { query, setQuery } = useSearch(handleSearch)
 
+  // Keep local input in sync with URL (e.g. on back button)
+  useEffect(() => {
+    if (query !== initialQuery) setQuery(initialQuery)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery])
+
   async function handleUpload(file: File) {
-    // Client-side validation
     if (!ALLOWED_MIME_TYPES.includes(file.type as typeof ALLOWED_MIME_TYPES[number])) {
       addToast('Invalid file type. Only JPEG, PNG, and WebP are allowed.', 'error')
       return
@@ -79,7 +93,6 @@ export default function GalleryClient({ userEmail }: GalleryClientProps) {
   async function handleAnalyze(id: string) {
     try {
       await analyzeImage(id)
-      // Poll for completion
       const poll = setInterval(async () => {
         const res = await fetch(`/api/images/${id}/status`)
         if (!res.ok) { clearInterval(poll); return }
@@ -108,7 +121,8 @@ export default function GalleryClient({ userEmail }: GalleryClientProps) {
   }
 
   function handlePageChange(p: number) {
-    fetchImages(p, currentQuery)
+    fetchImages(p, initialQuery)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
@@ -119,8 +133,9 @@ export default function GalleryClient({ userEmail }: GalleryClientProps) {
         <div className="mb-6">
           <SearchBar
             value={query}
-            onChange={setQuery}
-            resultCount={currentQuery ? total : undefined}
+            onChange={(q) => { setIsSearching(true); setQuery(q) }}
+            resultCount={initialQuery ? total : undefined}
+            isSearching={isSearching}
           />
         </div>
 
@@ -138,7 +153,7 @@ export default function GalleryClient({ userEmail }: GalleryClientProps) {
           page={page}
           totalPages={totalPages}
           isLoading={loading}
-          searchQuery={currentQuery || undefined}
+          searchQuery={initialQuery || undefined}
           onPageChange={handlePageChange}
           onDelete={handleDelete}
           onAnalyze={handleAnalyze}
