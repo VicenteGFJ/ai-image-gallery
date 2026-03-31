@@ -2,14 +2,17 @@
 
 import { useState, useCallback } from 'react'
 import type { ImageWithUrls, PaginatedImages } from '@/types'
+import { IMAGES_PER_PAGE } from '@/lib/constants'
 
 export function useImages() {
   const [images, setImages] = useState<ImageWithUrls[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Derived: recalculates automatically whenever total changes (upload, delete, fetch)
+  const totalPages = Math.ceil(total / IMAGES_PER_PAGE)
 
   const fetchImages = useCallback(async (pageNum = 1, query = ''): Promise<{ total: number } | null> => {
     setLoading(true)
@@ -26,7 +29,6 @@ export function useImages() {
       setImages(data.images)
       setTotal(data.total)
       setPage(data.page)
-      setTotalPages(data.total_pages)
       return { total: data.total }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
