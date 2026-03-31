@@ -30,10 +30,8 @@ export async function POST(
 
   const metadata = Array.isArray(image.image_metadata) ? image.image_metadata[0] : image.image_metadata
   const status = metadata?.ai_processing_status
-  const hasTitle = !!(metadata as { title?: string | null })?.title
 
-  // Block re-analysis only if complete AND already has a title
-  if (status === 'complete' && hasTitle) {
+  if (status === 'complete') {
     return NextResponse.json({ error: 'Image already analyzed' }, { status: 409 })
   }
 

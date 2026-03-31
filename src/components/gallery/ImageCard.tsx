@@ -44,21 +44,10 @@ export default function ImageCard({ image, onClick, onAnalyze }: ImageCardProps)
       <div className="p-3 space-y-2">
         {status === 'complete' && (
           <>
-            {title ? (
+            {title && (
               <p className="text-sm font-medium leading-tight truncate" style={{ color: 'var(--foreground)' }}>
                 {title}
               </p>
-            ) : (
-              <button
-                onClick={e => { e.stopPropagation(); onAnalyze?.(image.id) }}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition hover:opacity-90"
-                style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)', border: '1px solid var(--accent)' }}
-              >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
-                </svg>
-                Re-analyze for Title
-              </button>
             )}
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
