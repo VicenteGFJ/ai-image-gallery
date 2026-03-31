@@ -1,14 +1,14 @@
-import { Suspense } from 'react'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import GalleryClient from './GalleryClient'
 
-export default async function GalleryPage() {
+export default async function GalleryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const { q } = await searchParams
 
-  return (
-    <Suspense fallback={null}>
-      <GalleryClient userEmail={user?.email ?? ''} />
-    </Suspense>
-  )
+  return <GalleryClient userEmail={user?.email ?? ''} initialQuery={q ?? ''} />
 }

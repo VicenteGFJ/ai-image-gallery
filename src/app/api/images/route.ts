@@ -102,6 +102,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 })
   }
 
+  const serviceClient = createServiceClient()
+
+  // Duplicate check: same original filename already uploaded by this user
+  const { data: existing } = await serviceClient
+    .from('images')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('original_filename', file.name)
+    .maybeSingle()
+
+  if (existing) {
+    return NextResponse.json(
+      { error: `An image named "${file.name}" has already been uploaded.` },
+      { status: 409 }
+    )
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer())
   const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
   const filename = `${randomUUID()}.${ext}`
@@ -114,8 +131,6 @@ export async function POST(request: Request) {
   const originalPath = `${user.id}/originals/${filename}`
   const thumbnailFilename = filename.replace(/\.\w+$/, '.jpg')
   const thumbnailPath = `${user.id}/thumbnails/${thumbnailFilename}`
-
-  const serviceClient = createServiceClient()
 
   const [originalUpload, thumbnailUpload] = await Promise.all([
     serviceClient.storage.from('images').upload(originalPath, buffer, { contentType: file.type }),
@@ -134,6 +149,7 @@ export async function POST(request: Request) {
     .insert({
       user_id: user.id,
       filename,
+      original_filename: file.name,
       original_path: originalPath,
       thumbnail_path: thumbnailPath,
       file_size_bytes: file.size,

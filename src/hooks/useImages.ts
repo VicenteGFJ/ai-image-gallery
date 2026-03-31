@@ -11,7 +11,7 @@ export function useImages() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchImages = useCallback(async (pageNum = 1, query = '') => {
+  const fetchImages = useCallback(async (pageNum = 1, query = ''): Promise<{ total: number } | null> => {
     setLoading(true)
     setError(null)
 
@@ -27,8 +27,10 @@ export function useImages() {
       setTotal(data.total)
       setPage(data.page)
       setTotalPages(data.total_pages)
+      return { total: data.total }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
+      return null
     } finally {
       setLoading(false)
     }

@@ -4,11 +4,9 @@ interface SearchBarProps {
   value?: string
   onChange?: (value: string) => void
   disabled?: boolean
-  resultCount?: number
-  isSearching?: boolean
 }
 
-export default function SearchBar({ value = '', onChange, disabled, resultCount, isSearching }: SearchBarProps) {
+export default function SearchBar({ value = '', onChange, disabled }: SearchBarProps) {
   return (
     <div className="relative">
       <div className="relative flex items-center">
@@ -24,7 +22,7 @@ export default function SearchBar({ value = '', onChange, disabled, resultCount,
         </svg>
 
         <input
-          type="search"
+          type="text"
           placeholder={disabled ? 'Search coming in Wave 3…' : 'Search by tags or description…'}
           disabled={disabled}
           value={value}
@@ -49,17 +47,6 @@ export default function SearchBar({ value = '', onChange, disabled, resultCount,
           </button>
         )}
       </div>
-
-      {!disabled && (
-        <div className="mt-1 text-xs" style={{ color: 'var(--muted)', minHeight: '1rem' }}>
-          {isSearching && 'Searching…'}
-          {!isSearching && value && resultCount !== undefined && (
-            resultCount === 0
-              ? `No images match your search`
-              : `${resultCount} image${resultCount !== 1 ? 's' : ''} found`
-          )}
-        </div>
-      )}
     </div>
   )
 }
